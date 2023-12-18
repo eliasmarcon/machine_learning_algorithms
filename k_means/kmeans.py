@@ -1,15 +1,17 @@
+import os
+import shutil
+import tempfile
+import imageio
 import pandas as pd
 import numpy as np
 import random
 import matplotlib.pyplot as plt 
 import matplotlib.cm as cm
-
 import plotly.graph_objs as go
 import plotly.express as px
-from plotly.subplots import make_subplots
 
+from plotly.subplots import make_subplots
 from PIL import Image
-from io import BytesIO
 
 import warnings
 warnings.filterwarnings('ignore') 
@@ -19,57 +21,108 @@ class KMeans():
     random.seed(10)
     np.random.seed(10)
     
-    def __init__(self, k = 2, max_iter = 100, patience = 10, method = 'kmeans++', distance_metric = 'euclidean', show_initial_centroids = False, random_state = None):
+    def __init__(self, k : int = 2, max_iter : int = 100, patience : int = 10, cluster_method : str = 'kmeans++', distance_metric : str = 'euclidean', random_state : int = None):
         
-        self.k = k
-        self.iteration = 1
-        self.max_iter = max_iter
-        self.method = method
-        self.patience = patience
-        self.distance_metric = distance_metric
-        self.__show_initial_centroids = show_initial_centroids
+        """
+        Parameters
+        ----------
+        k : int, optional
+            Number of clusters. The default is 2.
+        max_iter : int, optional
+            Maximum number of iterations. The default is 100.
+        patience : int, optional
+            Number of iterations to wait for convergence. The default is 10.
+        cluster_method : str, optional
+            Method to initialize the centroids. The default is 'kmeans++'.
+        distance_metric : str, optional
+            Distance metric to use. The default is 'euclidean'.
+        random_state : int, optional
+            Random state to use. The default is None.
+        """
+        
+        self.__k = k
+        self.__iteration = 1
+        self.__max_iter = max_iter
+        self.__cluster_method = cluster_method
+        self.__patience = patience
+        self.__distance_metric = distance_metric
+        
+        # Set the random state if not provided
+        if random_state is None: random_state = np.random.randint(1, 101)
         
         random.seed(random_state)
         np.random.seed(random_state)
         
-    def fit(self, data, col_names = None, scaling_method = 'standardization', plot_data = False):
+    def fit(self, data : pd.DataFrame, col_names : list = None, scaling_method : str = None) -> None:
         
-        if col_names is None:
+        """
+        Parameters
+        ----------
+        data : pd.DataFrame
+            Data to be clustered.
+        col_names : list, optional
+            List of column names to use. The default is None.
+        scaling_method : str, optional
+            Scaling method to use. The default is None. Options are 'min_max', 'standardization', 'mean_normalization'
+        """
         
-            self.n_columns = 2
-            
-            # Get two random column names without replacement
-            random_columns = random.sample(data.columns.tolist(), 2)
-            self.data = data[random_columns]
+        if type(data) != pd.core.frame.DataFrame: raise ValueError("Data must be a pandas DataFrame")
+        
+        if col_names:
+        
+            self.__n_columns = len(col_names)
+            self.__data = data[col_names]
             
         else:
             
-            self.n_columns = len(col_names)
-            self.data = data[col_names]
-                
+            self.__n_columns = len(data.columns)
+            self.__data = data
+               
         # Scale the data
-        self.scaling_method(scaling_method)
+        if scaling_method: 
+            self.__apply_scaling_method(scaling_method)
+    
+    
+    def perform(self, show_initial_centroids : bool = False, plot_data : bool = False, gif_path : str = None) -> None:
         
-        if plot_data and self.n_columns == 2:
+        """
+        Parameters
+        ----------
+        show_initial_centroids : bool, optional
+            Whether to show the initial centroids. The default is False.
+        plot_data : bool, optional
+            Whether to plot the data. The default is False.
+        gif_path : str, optional
+            Path to save the GIF. The default is None.
+        """
+        
+        self.__show_initial_centroids = show_initial_centroids
+        self.__output_file = gif_path
+        self.__plot_array = []
+        
+        if plot_data and self.__n_columns < 1 or plot_data and self.__n_columns > 3: raise ValueError("Plot dimension must be 2 or 3 (for 2d plots or 3d plots respectively)")
+        
+        if self.__output_file is not None: self.__temp_dir = tempfile.mkdtemp()
+        
+        if plot_data and self.__n_columns == 2:
         
             # Plot initial data
-            self._plot_initial_data()
+            self.__plot_initial_data()
             
-        if plot_data and self.n_columns == 3:
+        elif plot_data and self.__n_columns == 3:
             
-            self._plot_initial_data_3d()
-            
-            
+            self.__plot_initial_data_3d()
+                       
         # Get initial centroids
-        centroids = self.__method()
+        centroids = self.__apply_cluster_method()
         
-        prev_clusters = np.zeros(len(self.data))
+        prev_clusters = np.zeros(len(self.__data))
         no_change_count = 0
         
-        while self.iteration <= self.max_iter and no_change_count < self.patience:
+        while self.__iteration <= self.__max_iter and no_change_count < self.__patience:
             
             # Assign each data point to the closest centroid
-            cluster_array = self._add_data_point_to_cluster(centroids)
+            cluster_array = self.__add_data_point_to_cluster(centroids)
             
             # Check for convergence
             if np.array_equal(prev_clusters, cluster_array):
@@ -82,95 +135,175 @@ class KMeans():
             
             prev_clusters = cluster_array.copy()
             
-            if plot_data and self.n_columns == 2:
+            if plot_data and self.__n_columns == 2:
                 # Plot current state
-                self._update_plot(centroids, cluster_array)
+                self.__update_plot(centroids, cluster_array)
                 
-            if plot_data and self.n_columns == 3:
+            elif plot_data and self.__n_columns == 3:
                 # Plot current state
-                self._update_plot_3d(centroids, cluster_array)
-            
-            print("Cluster Array", cluster_array)
+                self.__update_plot_3d(centroids, cluster_array)
             
             # Update centroids
-            centroids = self._update_centroids(cluster_array)
+            centroids = self.__update_centroids(cluster_array)
             
-            print("Updated", centroids)
-            
-            self.iteration += 1
+            self.__iteration += 1
         
-        if plot_data and self.n_columns == 2:
+        if plot_data and self.__n_columns == 2:
             
             plt.show()
             
-        elif plot_data and self.n_columns == 3:
+        elif plot_data and self.__n_columns == 3:
             
             self.create_gif()
         
         # Save the final state
-        self.cluster_array = cluster_array
+        self.__cluster_array = cluster_array
+        self.__centroids = centroids
+
+        if self.__output_file is not None:
+            
+            # Create GIF
+            self.__create_gif()
+            
+
+    def predict(self, data : pd.DataFrame) -> np.ndarray:
+        
+        """
+        Parameters
+        ----------
+        data : pd.DataFrame
+            Data to be clustered.
+        """
+        
+        if type(data) != pd.core.frame.DataFrame: raise ValueError("Data must be a pandas DataFrame")
+        elif len(data.columns) != self.__n_columns: raise ValueError(f"Data must have {self.__n_columns} columns")
+        
+        return self.__predict_new_data(data)
+
+    def get_cluster_array(self, visualize : bool = False) -> np.ndarray:
+        
+        """
+        Summary:
+        --------
+        """
+        if visualize:
+            
+            self.__plot_cluster_array() 
+        
+        return self.__cluster_array
+        
+
+    def get_centroids(self) -> np.ndarray:  
+            
+        """
+        Summary:
+        --------
+        """
+        
+        return self.__centroids
+
+
+    def __plot_cluster_array(self) -> None:
+        
+        """
+        Summary:
+        --------
+        """
+        # Count occurrences of each unique value
+        unique_values, counts = np.unique(self.__cluster_array, return_counts = True)
+
+        # Create a color map for different colors
+        colors = plt.cm.viridis(np.linspace(0, 1, len(unique_values)))
+
+        # Create a bar chart with different colors for each bar
+        bars = plt.bar(unique_values, counts, color=colors)
+
+        # Add count values on top of the bars
+        for bar, count in zip(bars, counts):
+            plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height(), str(count),
+                    ha='center', va='bottom')
+
+        # Customize the plot
+        plt.title('Cluster Array')
+        plt.xlabel('Cluster')
+        plt.xticks(unique_values)
+        plt.ylabel('Count')
+
+        # Show the plot
+        plt.show()
     
     ############################################################################################################
     ############################################# Scaling Functions ############################################
     ############################################################################################################
-    def scaling_method(self, method):
+    def __apply_scaling_method(self, scaling_method : str) -> None:
         
-        if method == 'min_max':
+        """
+        Parameters
+        ----------
+        scaling_method : str
+            Scaling method to use. Options are 'min_max', 'standardization', 'mean_normalization'
+        """
+        if scaling_method == 'min_max':
             
-            self.data = (self.data - self.data.min()) / (self.data.max() - self.data.min())
-            # print(method)
-            # print(self.data)
-            
-        elif method == 'standardization':
+            self.__data = (self.__data - self.__data.min()) / (self.__data.max() - self.__data.min())
+
+        elif scaling_method == 'standardization':
                 
-            self.data = (self.data - self.data.mean()) / self.data.std()
-            # print(method)
-            # print(self.data)
+            self.__data = (self.__data - self.__data.mean()) / self.__data.std()
+
+        elif scaling_method == 'mean_normalization':
             
-        elif method == 'mean_normalization':
-            
-            self.data = (self.data - self.data.mean()) / (self.data.max() - self.data.min())
-            # print(method)
-            # print(self.data)
+            self.__data = (self.__data - self.__data.mean()) / (self.__data.max() - self.__data.min())
             
         else:
                 
-            raise ValueError(f"Unsupported scaling method: {method}, supported methods are: min_max, standardization, mean_normalization")
+            raise ValueError(f"Unsupported scaling method: {scaling_method}, supported methods are: min_max, standardization, mean_normalization")
 
-    
     ############################################################################################################
-    ############################################ Centroid Functions ############################################
+    ############################################## Cluster Method ##############################################
     ############################################################################################################
-    
-    def __method(self):
+    def __apply_cluster_method(self) -> None:
         
-        if self.method == 'kmeans++':
+        """
+        Summary:
+        --------
+        
+        """
+        
+        if self.__cluster_method == 'kmeans++':
 
             return self.__k_means_plus_plus()
         
-        elif self.method == 'random':
+        elif self.__cluster_method == 'random':
             
             return self.__random_centroids()
         
         else:
                 
-            raise ValueError(f"Unsupported method: {self.method}, supported methods are: kmeans++, random")
+            raise ValueError(f"Unsupported cluster method: {self.__cluster_method}, supported cluster methods are: kmeans++, random")
         
-    def __k_means_plus_plus(self):
+    def __k_means_plus_plus(self) -> np.ndarray:
         
-        centroids = self.data.iloc[np.random.choice(len(self.data), 1, replace=False)].values
+        """
+        Summary:
+        --------
+        """
+        
+        centroids = self.__data.iloc[np.random.choice(len(self.__data), 1, replace=False)].values
         
         if self.__show_initial_centroids:
             self.__update_initial_centroids(centroids)
+            self.__save_plot_as_png(f'initial_centroids')
+            
         
-        for i in range(self.k - 1):
+        for k in range(self.__k - 1):
             
             ## initialize a list to store distances of data points from nearest centroid
             dist = []
 
-            for i in range(self.data.shape[0]):
+            for i in range(self.__data.shape[0]):
                 
-                point = self.data.iloc[i, :].values
+                point = self.__data.iloc[i, :].values
                 d = np.inf
                 
                 ## compute distance of 'point' from each of the previously selected centroid and store the minimum distance
@@ -182,116 +315,120 @@ class KMeans():
                 dist.append(d)
                 
             ## select data point with maximum distance as our next centroid
-            centroids = np.append(centroids, [self.data.iloc[np.argmax(np.array(dist)), :]], axis = 0)
+            centroids = np.append(centroids, [self.__data.iloc[np.argmax(np.array(dist)), :]], axis = 0)
 
             if self.__show_initial_centroids:
                 self.__update_initial_centroids(centroids)
-        
+                self.__save_plot_as_png(f'iteration_centroids_{k}')
+                
         return centroids
       
-    def __random_centroids(self):
+    def __random_centroids(self) -> np.ndarray:
         
-        centroids = self.data.iloc[np.random.choice(len(self.data), self.k, replace=False)].values
+        """
+        Summary:
+        --------
+        """
+        
+        centroids = self.__data.iloc[np.random.choice(len(self.__data), self.__k, replace=False)].values
         
         if self.__show_initial_centroids:
-                self.__update_initial_centroids(centroids)
-        
+            self.__update_initial_centroids(centroids)
+            self.__save_plot_as_png(f'initial_centroids')
+
         return centroids
     
-    def _update_centroids(self, clusters):
+    ############################################################################################################
+    ############################################ Centroid Functions ############################################
+    ############################################################################################################
+    def __update_centroids(self, clusters : np.ndarray) -> np.ndarray:
         
-        new_centroids = np.zeros((self.k, self.n_columns))
+        """
+        Summary:
+        --------
+        """
         
-        for i in range(self.k):
+        new_centroids = np.zeros((self.__k, self.__n_columns))
+        
+        for i in range(self.__k):
             
-            new_centroids[i] = np.mean(self.data[clusters == i], axis = 0)
+            new_centroids[i] = np.mean(self.__data[clusters == i], axis = 0)
         
         return new_centroids
     
-    def _add_data_point_to_cluster(self, centroids):
+    def __add_data_point_to_cluster(self, centroids : np.ndarray) -> np.ndarray:
         
-        distances = np.zeros((len(self.data), self.k))
+        """
+        Summary:
+        --------
+        """
+        
+        distances = np.zeros((len(self.__data), self.__k))
         
         for i, centroid in enumerate(centroids):
 
-            distances[:, i] = self.__get_distance(self.data.values, centroid)
-        
+            distances[:, i] = self.__get_distance(self.__data.values, centroid)
+
         return np.argmin(distances, axis=1)
         
-    def __get_distance(self, points, centroid):
-        
-        if self.distance_metric == 'euclidean':
+    ############################################################################################################
+    ############################################ Distance Metrics ##############################################
+    ############################################################################################################    
+    def __get_distance(self, points : np.ndarray, centroid : np.ndarray) -> None:
+          
+        """
+        Summary:
+        --------
+        """
+              
+        if self.__distance_metric == 'euclidean':
+            
+            return np.sqrt(np.sum(np.square(points - centroid), axis = 0 if len(points.shape) == 1 else 1)) 
 
-            return np.sqrt(np.sum(np.square(points - centroid), axis = 0 if len(points) == 2 else 1)) 
-
-        elif self.distance_metric == 'manhattan':
+        elif self.__distance_metric == 'manhattan':
             
             # Compute the Manhattan distance
             return np.sum(np.abs(points - centroid), axis=1)
         
-        elif self.distance_metric == 'squared_euclidean':
+        elif self.__distance_metric == 'squared_euclidean':
             
             return np.sum(np.square(points - centroid), axis = 1)
             
-        elif self.distance_metric == 'canberra':
+        elif self.__distance_metric == 'canberra':
             
             return np.sum(np.abs(points - centroid) / (np.abs(points) + np.abs(centroid)), axis=1)
             
         else:
             
-            raise ValueError(f"Unsupported distance metric: {self.distance_metric}")
+            raise ValueError(f"Unsupported distance metric: {self.__distance_metric}")
         
     ############################################################################################################
-    ############################################ Plotting Functions ############################################
-    ############################################################################################################
+    ############################################# New Predictions ##############################################
+    ############################################################################################################    
+    def __predict_new_data(self, data : pd.DataFrame) -> np.ndarray:
+        
+        """
+        Summary:
+        --------
+        """
+        
+        distances = np.zeros((len(data), self.__k))
+        
+        for i, centroid in enumerate(self.__centroids):
+
+            distances[:, i] = self.__get_distance(data.values, centroid)
+        
+        return np.argmin(distances, axis=1)
     
-    def _plot_initial_data(self):
+    ############################################################################################################
+    ################################## Plotting initial Centroids Functions ####################################
+    ############################################################################################################
+    def __update_initial_centroids(self, centroids : np.ndarray) -> None:
         
-        self.fig, self.ax = plt.subplots(figsize=(14, 10))
-        self.ax.scatter(self.data.iloc[:, 0], self.data.iloc[:, 1], marker='o', label='Data Points')
-        self.ax.set_title('Initial State')
-        self._plot_attributes()
-        plt.tight_layout()
-        plt.show(block=False)  # Display the plot without blocking
-        plt.waitforbuttonpress(0)
-
-    def _update_plot(self, centroids, clusters):
-        
-        self.ax.clear()  # Clear the axes
-        
-        print(centroids)
-        
-        # Use a colormap to get distinct colors for each cluster
-        colors = cm.rainbow(np.linspace(0, 1, self.k))
-
-        for i in range(self.k):
-            
-            cluster_points = self.data[clusters == i]
-            
-            self.ax.scatter(cluster_points.iloc[:, 0], cluster_points.iloc[:, 1], marker='o', label=f'Cluster {i}', color=colors[i])
-
-            # Scatter plot for centroids with the color of the corresponding cluster
-            self.ax.scatter(centroids[i, 0], centroids[i, 1], marker='*', s=200, c=colors[i], edgecolors='black', label=f'Centroid {i}')
-
-        
-        self.ax.set_title(f'Current State Iteration: {self.iteration}')
-        self._plot_attributes()
-        self._plot_layout()
-        
-    def _plot_attributes(self):
-
-        self.ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
-        self.ax.set_xlabel(self.data.columns[0])
-        self.ax.set_ylabel(self.data.columns[1])
-
-    def _plot_layout(self):
-        
-        plt.tight_layout()
-        plt.show(block=False)  # Display the plot without blocking
-        plt.pause(1)
-        
-    # function to plot the selected centroids
-    def __update_initial_centroids(self, centroids):
+        """
+        Summary:
+        --------
+        """
         
         self.ax.clear()  # Clear the axes
 
@@ -300,53 +437,167 @@ class KMeans():
             return any(np.all(row.values == centroid) for centroid in centroids)
 
         # Apply the function to identify rows equal to the centroid
-        mask = self.data.apply(is_equal_to_centroids, axis=1)
+        mask = self.__data.apply(is_equal_to_centroids, axis=1)
         # Filter the DataFrame to exclude rows equal to the centroid
-        result_df = self.data[~mask]
+        result_df = self.__data[~mask]
 
         self.ax.scatter(result_df.iloc[:, 0], result_df.iloc[:, 1], marker='o', label='Data Points')
         
-        if self.method == "kmeans++":
+        if self.__cluster_method == "kmeans++":
             
-            self.ax.scatter(centroids[:-1, 0], centroids[:-1, 1], marker='^', s=150, color = 'orange', label = 'Previously selected centroids')
+            self.ax.scatter(centroids[:-1, 0], centroids[:-1, 1], marker='^', s=150, color = 'orange', label = 'Previously selected\n centroids')
             self.ax.scatter(centroids[-1, 0], centroids[-1, 1], marker='*', s=150, color = 'red', label = 'Next centroid')
         
         else:
             self.ax.scatter(centroids[:, 0], centroids[:, 1], marker='*', s=150, color = 'orange', label = 'Next centroid')
         
-        self.ax.set_title('Select % d th centroid'%(centroids.shape[0]))
-        self._plot_attributes()
-        self._plot_layout()
+        self.ax.set_title('Select %d th centroid'%(centroids.shape[0]))
+                
+        self.__plot_attributes()
+        self.__plot_layout()
+    
+    
+    ############################################################################################################
+    ########################################## Plotting 2D Functions ###########################################
+    ############################################################################################################
+    def __plot_initial_data(self) -> None:
+        
+        """
+        Summary:
+        --------
+        """
+        
+        self.__fig, self.ax = plt.subplots(figsize=(10, 8))
+        self.ax.scatter(self.__data.iloc[:, 0], self.__data.iloc[:, 1], marker='o', label='Data Points')
+        self.ax.set_title('Initial State')
+        self.__plot_attributes()
+        
+        self.__save_plot_as_png("initial_state")
+        
+        plt.tight_layout()
+        plt.show(block=False)  # Display the plot without blocking
+        plt.waitforbuttonpress(0)
+
+    def __update_plot(self, centroids : np.ndarray, clusters : np.ndarray) -> None:
+        
+        """
+        Summary:
+        --------
+        """
+        
+        self.ax.clear()  # Clear the axes
+        
+        # Use a colormap to get distinct colors for each cluster
+        colors = cm.rainbow(np.linspace(0, 1, self.__k))
+
+        for i in range(self.__k):
+            
+            cluster_points = self.__data[clusters == i]
+            
+            self.ax.scatter(cluster_points.iloc[:, 0], cluster_points.iloc[:, 1], marker='o', label=f'Cluster {i}', color=colors[i])
+
+            # Scatter plot for centroids with the color of the corresponding cluster
+            self.ax.scatter(centroids[i, 0], centroids[i, 1], marker='*', s=200, c=colors[i], edgecolors='black', label=f'Centroid {i}')
+
+        
+        self.ax.set_title(f'Current State Iteration: {self.__iteration}')
+        self.__plot_attributes()
+        
+        self.__save_plot_as_png(f'iteration_{self.__iteration}')
+        
+        plt.tight_layout()
+        plt.show(block=False)  # Display the plot without blocking
+        plt.pause(1)
+
+        
+    def __plot_attributes(self) -> None:
+    
+        """
+        Summary:
+        --------
+        """
+    
+        self.ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+        self.ax.set_xlabel(self.__data.columns[0])
+        self.ax.set_ylabel(self.__data.columns[1])
+        
+    def __plot_layout(self) -> None:
+        
+        """
+        Summary:
+        --------
+        """
+        
+        plt.tight_layout()
+        plt.show(block=False)  # Display the plot without blocking
+        plt.pause(1)
+        
+    def __save_plot_as_png(self, step : str) -> None:
+           
+        """
+        Summary:
+        --------
+        """   
+             
+        # Save the plot as a PNG file
+        if self.__output_file is not None:
+            
+            png_file = os.path.join(self.__temp_dir, f'{step}.png')
+            
+            self.__fig.savefig(png_file)
+            self.__plot_array.append(png_file)
+            
+    def __create_gif(self) -> None:
+        
+        """
+        Summary:
+        --------
+        """
+            
+        images = [Image.open(png_file) for png_file in self.__plot_array]
+            
+        # Generate a GIF from the PNG files
+        imageio.mimsave(self.__output_file + '.gif', images, duration=500, loop = 0)
+
+        # Clean up: Remove the temporary directory and its contents
+        shutil.rmtree(self.__temp_dir)
 
     ############################################################################################################
     ########################################## Plotting Functions 3d ###########################################
     ############################################################################################################ 
+    def __plot_initial_data_3d(self) -> None:
         
-    def _plot_initial_data_3d(self):
+        """
+        Summary:
+        --------
+        """
         
-        self.fig = make_subplots(rows=1, cols=1, specs=[[{'type': 'scatter3d'}]])
+        self.__fig = make_subplots(rows=1, cols=1, specs=[[{'type': 'scatter3d'}]])
         scatter = go.Scatter3d(
-            x=self.data.iloc[:, 0],
-            y=self.data.iloc[:, 1],
-            z=self.data.iloc[:, 2],
+            x=self.__data.iloc[:, 0],
+            y=self.__data.iloc[:, 1],
+            z=self.__data.iloc[:, 2],
             mode='markers',
             marker=dict(size=5, color='blue'),
             name='Data Points'
         )
-        self.fig.add_trace(scatter)
-        self.fig.update_layout(scene=dict(zaxis=dict(showticklabels=False)))
-        self.fig.update_layout(title_text='Initial State')
-        self._plot_attributes_3d()
-        self.fig.to_image(f'./3d_images/plot_3d_iteration_initial.jpeg')
+        self.__fig.add_trace(scatter)
+        self.__fig.update_layout(scene=dict(zaxis=dict(showticklabels=False)), title_text='Initial State')
+        self.___plot_attributes_3d()
 
 
-    def _update_plot_3d(self, centroids, clusters):
+    def __update_plot_3d(self, centroids : np.ndarray, clusters : np.ndarray) -> None:
         
-        self.fig.data = []  # Clear previous traces
+        """
+        Summary:
+        --------
+        """
+        
+        self.__fig.data = []  # Clear previous traces
         colors = px.colors.qualitative.G10
 
-        for i in range(self.k):
-            cluster_points = self.data[clusters == i]
+        for i in range(self.__k):
+            cluster_points = self.__data[clusters == i]
             scatter_cluster = go.Scatter3d(
                 x=cluster_points.iloc[:, 0],
                 y=cluster_points.iloc[:, 1],
@@ -355,7 +606,7 @@ class KMeans():
                 marker=dict(size=5, color=colors[i]),
                 name=f'Cluster {i}'
             )
-            self.fig.add_trace(scatter_cluster)
+            self.__fig.add_trace(scatter_cluster)
 
             scatter_centroid = go.Scatter3d(
                 x=[centroids[i, 0]],
@@ -365,39 +616,27 @@ class KMeans():
                 marker=dict(size=8, color=colors[i], symbol='diamond', line = dict(color='black', width = 2)),
                 name=f'Centroid {i}'
             )
-            self.fig.add_trace(scatter_centroid)
+            self.__fig.add_trace(scatter_centroid)
 
-        self.fig.update_layout(scene=dict(zaxis=dict(showticklabels=False)))
-        self.fig.update_layout(title_text=f'Current State Iteration: {self.iteration}')
-        self._plot_attributes_3d()
+        self.__fig.update_layout(scene=dict(zaxis=dict(showticklabels=False)), title_text=f'Current State Iteration: {self.__iteration}')
+        self.___plot_attributes_3d()
 
-    def _plot_attributes_3d(self):
+    def ___plot_attributes_3d(self) -> None:
+        
+        """
+        Summary:
+        --------
+        """
         
         layout = go.Layout(
                             scene = dict(
-                                    xaxis = dict(title  = self.data.columns[0]),
-                                    yaxis = dict(title  = self.data.columns[1]),
-                                    zaxis = dict(title  = self.data.columns[2])
+                                    xaxis = dict(title  = self.__data.columns[0]),
+                                    yaxis = dict(title  = self.__data.columns[1]),
+                                    zaxis = dict(title  = self.__data.columns[2])
                                 )
                           )
-        self.fig.update_layout(layout)
         
-        print(f"Current State Iteration: {self.iteration}")
-        
-        # Save the current figure as bytes
-        img_bytes = self.fig.to_image(format="png", engine="kaleido")
-
-        # Append the image bytes to a list
-        if not hasattr(self, 'image_bytes_list'):
-            self.image_bytes_list = []
-            
-        self.image_bytes_list.append(img_bytes)
-        
-    def save_gif(self, gif_path):
-        # Create a GIF from the stored image bytes
-        images = [Image.open(BytesIO(img_bytes)) for img_bytes in self.image_bytes_list]
-        images[0].save(gif_path, save_all=True, append_images=images[1:], duration=500, loop=0)
-
+        self.__fig.update_layout(layout)
 
 
 
@@ -425,19 +664,16 @@ if __name__ == "__main__":
             # Concatenate the new data to the existing DataFrame
             df_customers = pd.concat([df_customers, pd.DataFrame(new_rows)], ignore_index=True)
 
-        # print("=" * 30, "Data Overview", "=" * 30, "\n")
-
-        # print(df_customers.head(), "\n")
-        # print(df_customers.info(), "\n")
-        # print(df_customers.describe(), "\n")
-
         return df_customers
     
     df_customers = read_present_data()
 
-    # data_analysis(df_customers)
-    # display(df_customers)
+    # kmeans = KMeans(k = 4, max_iter = 5, cluster_method = 'random', distance_metric='euclidean', random_state = 42)
+    # kmeans.fit(df_customers[['Annual Income (k$)', 'Spending Score (1-100)']], scaling_method='standardization')#, 'Average Purchase Amount', 'Spending Score (1-100)'])
 
-    kmeans = KMeans(k = 4, max_iter = 5, method = 'random', show_initial_centroids=True, distance_metric='euclidean', random_state = 42)
-    kmeans.fit(df_customers, col_names = ['Age', 'Number of Purchases'], scaling_method='standardization', plot_data = True)#, 'Average Purchase Amount', 'Spending Score (1-100)'])
+    # kmeans.perform(show_initial_centroids=False, plot_data=False)
+    # kmeans.perform(col_names=['Annual Income (k$)', 'Spending Score (1-100)', 'Number of Purchases', 'Average Purchase Amount'], plot_dimension=2)
 
+    kmeans = KMeans(k = 4, max_iter = 10, cluster_method = 'kmeans++', distance_metric='euclidean', random_state = 42)
+    kmeans.fit(df_customers, scaling_method='standardization')#, 'Average Purchase Amount', 'Spending Score (1-100)'])
+    kmeans.perform(show_initial_centroids=False, plot_data=False)
