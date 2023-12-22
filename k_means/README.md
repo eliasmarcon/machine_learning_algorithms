@@ -10,3 +10,13 @@
 - [] Jupyter Notebook verbessern und erklären mit vielen Beispielen 
 - [] Read ME schreiben wie man was benutzt und welche funktionen es gibt
     - add all versions of the used libraries in the Read ME
+
+
+
+## Libraries- imageio: 2.32.0
+- matplotlib: 3.7.2
+- numpy: 1.24.3
+- PIL: 9.5.0
+- plotly: 5.17.0
+- pandas: 2.0.3
+- IPython: 8.13.2

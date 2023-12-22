@@ -445,30 +445,32 @@ class KMeans():
             If the specified distance metric is not supported.
         """
         
+        new_axis = 0 if len(points.shape) == 1 else 1
+        
         if self.__distance_metric == 'euclidean':
             
             # Euclidean distance: square root of the sum of squared differences
-            return np.sqrt(np.sum(np.square(points - centroid), axis=0 if len(points.shape) == 1 else 1))
+            return np.sqrt(np.sum(np.square(points - centroid), axis=new_axis))
         
         elif self.__distance_metric == 'manhattan':
            
             # Manhattan distance: sum of absolute differences
-            return np.sum(np.abs(points - centroid), axis=0 if len(points.shape) == 1 else 1)
+            return np.sum(np.abs(points - centroid), axis=new_axis)
         
         elif self.__distance_metric == 'squared_euclidean':
            
             # Squared Euclidean distance: sum of squared differences
-            return np.sum(np.square(points - centroid), axis=0 if len(points.shape) == 1 else 1)
+            return np.sum(np.square(points - centroid), axis=new_axis)
         
         elif self.__distance_metric == 'canberra':
             
             # Canberra distance: sum of absolute differences normalized by the sum of absolute values
-            return np.sum(np.abs(points - centroid) / (np.abs(points) + np.abs(centroid)), axis=0 if len(points.shape) == 1 else 1)
+            return np.sum(np.abs(points - centroid) / (np.abs(points) + np.abs(centroid)), axis=new_axis)
         
         else:
             
             # Unsupported distance metric, raise an error
-            raise ValueError(f"Unsupported distance metric: {self.__distance_metric}")
+            raise ValueError(f"Unsupported distance metric: {self.__distance_metric}, supported distance metrics are: euclidean, manhattan, squared_euclidean, canberra")
         
         
     ############################################################################################################
@@ -580,14 +582,13 @@ class KMeans():
 
         # Plot previously selected centroids for KMeans++
         if self.__cluster_method == "kmeans++":
-            self.__ax.scatter(centroids[:-1, 0], centroids[:-1, 1], marker='^', s=150, color='orange',
-                            label='Previously\nselected\ncentroids')
+            
+            self.__ax.scatter(centroids[:-1, 0], centroids[:-1, 1], marker='^', s=150, color='orange', label='Previously\nselected\ncentroids')
             self.__ax.scatter(centroids[-1, 0], centroids[-1, 1], marker='*', s=150, color='red', label='Next centroid')
 
         # Plot next centroids for random initialization
         else:
-            self.__ax.scatter(centroids[:, 0], centroids[:, 1], marker='*', s=150, color=self.__colors_2d_plots,
-                            label='Next centroid')
+            self.__ax.scatter(centroids[:, 0], centroids[:, 1], marker='*', s=150, color=self.__colors_2d_plots, label='Next centroid')
 
         # Set title for the plot
         self.__ax.set_title(f'Select {centroids.shape[0]} th centroid')
@@ -642,6 +643,7 @@ class KMeans():
 
         # Plot previously selected centroids for KMeans++
         if self.__cluster_method == "kmeans++":
+            
             self.__fig.add_trace(go.Scatter3d(
                 x=centroids[:-1, 0],
                 y=centroids[:-1, 1],
@@ -661,6 +663,7 @@ class KMeans():
             ))
 
         else:
+            
             # Plot next centroids for random initialization
             self.__fig.add_trace(go.Scatter3d(
                 x=centroids[:, 0],
@@ -1063,7 +1066,7 @@ if __name__ == "__main__":
     df_customers = pd.read_csv('../datasets/Mall_Customers.csv') 
     df_customers.drop(['CustomerID', 'Gender'], axis=1, inplace=True)
 
-    kmeans = KMeans(k = 4, max_iter = 10, cluster_method = 'kmeans++', distance_metric='euclidean', random_state = 100)
+    kmeans = KMeans(k = 4, max_iter = 10, cluster_method = 'kmeans++', distance_metric='manhattan', random_state = 100)
     kmeans.fit(df_customers[['Annual Income (k$)', 'Spending Score (1-100)']], scaling_method='standardization') #, 'Age'
     kmeans.perform(show_initial_centroids=True, plot_data=True)
 
