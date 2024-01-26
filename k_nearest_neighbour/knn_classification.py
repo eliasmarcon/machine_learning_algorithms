@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from collections import Counter
 from sklearn.model_selection import train_test_split
 
@@ -9,7 +8,16 @@ class KNN_self():
     ############################################################################################################
     ################################### Initialization / Main methods ##########################################
     ############################################################################################################
-    def __init__(self, n_neighbors : int = 3, distance_metric : str = 'euclidean', weighting : bool = False):
+    def __init__(self, n_neighbors : int = 3, distance_metric : str = 'euclidean', weighting : bool = False) -> None:
+        
+        """
+        Initialize the k-Nearest Neighbors classifier.
+
+        Parameters:
+        - n_neighbors (int): Number of neighbors to consider (default is 3).
+        - distance_metric (str): Distance metric used for finding neighbors (default is 'euclidean').
+        - weighting (bool): If True, neighbors are weighted by inverse distance during prediction (default is False).
+        """
         
         self.__check_init_method(n_neighbors, distance_metric)
 
@@ -19,6 +27,18 @@ class KNN_self():
         
     def fit(self, X_train : pd.DataFrame | pd.core.series.Series | np.ndarray, y_train : pd.DataFrame | pd.core.series.Series | np.ndarray, scaling_method : str = None) -> None:
    
+        """
+        Fit the k-Nearest Neighbors classifier to the training data.
+
+        Parameters:
+        - X_train (pd.DataFrame | pd.core.series.Series | np.ndarray): Training feature data.
+        - y_train (pd.DataFrame | pd.core.series.Series | np.ndarray): Training labels.
+        - scaling_method (str): Method for scaling the data (default is None).
+
+        Returns:
+        None
+        """
+        
         self.__check_fitting_method(X_train, scaling_method)
         self.__check_if_valid_data(X_train, y_train)
         
@@ -31,6 +51,16 @@ class KNN_self():
             
         
     def predict(self, X_testing : pd.DataFrame | pd.core.series.Series | np.ndarray) -> np.ndarray:
+        
+        """
+        Make predictions using the k-Nearest Neighbors classifier.
+
+        Parameters:
+        - X_testing (pd.DataFrame | pd.core.series.Series | np.ndarray): Testing feature data.
+
+        Returns:
+        np.ndarray: Predicted classes for each data point.
+        """
         
         self.__check_prediction_method(X_testing)
         self.__check_if_valid_data(X_testing)
@@ -46,6 +76,17 @@ class KNN_self():
 
     def accuracy(self, predictions : np.ndarray, y_testing : pd.DataFrame | pd.core.series.Series | np.ndarray) -> float:
         
+        """
+        Calculate the accuracy of predictions compared to true labels.
+
+        Parameters:
+        - predictions (np.ndarray): Predicted classes.
+        - y_testing (pd.DataFrame | pd.core.series.Series | np.ndarray): True labels.
+
+        Returns:
+        float: Accuracy of the predictions.
+        """
+    
         self.__check_if_valid_data(y_testing)
         
         return np.sum(y_testing.to_numpy() == predictions) / len(y_testing.to_numpy())
@@ -69,6 +110,7 @@ class KNN_self():
         ValueError
             If the specified scaling method is not supported.
         """
+        
         # Apply scaling based on the specified method
         if self.__scaling_method == 'min_max':
             # Min-Max scaling: scale to the range [0, 1]
@@ -82,10 +124,21 @@ class KNN_self():
             # Mean normalization: scale to have mean=0 and range [-1, 1]
             return (data - data.mean()) / (data.max() - data.min())
     
+    
     ############################################################################################################
-    ########################################### Private Methods ################################################
+    ########################################### Distance Methods ###############################################
     ############################################################################################################
-    def __get_neighbors(self, point : np.ndarray):
+    def __get_neighbors(self, point : np.ndarray) -> str:
+
+        """
+        Determine the most common class label among the k-nearest neighbors of a given point.
+
+        Parameters:
+        - point (np.ndarray): Data point for which neighbors are to be found.
+
+        Returns:
+        str: Most common class label among the neighbors.
+        """
 
         distances = self.__calculate_distance(point)
             
@@ -97,7 +150,17 @@ class KNN_self():
             
         return most_common_neighbor
         
-    def __calculate_distance(self, point : np.ndarray):
+    def __calculate_distance(self, point : np.ndarray) -> np.ndarray:
+        
+        """
+        Calculate distances between a given data point and all training data points.
+
+        Parameters:
+        - point (np.ndarray): Data point for which distances are to be calculated.
+
+        Returns:
+        np.ndarray: Array containing distances, indices, and weights for each training data point.
+        """
         
         # Compute the distance between the new data point and each training data point
         distances = self.__get_distance(point)
@@ -112,6 +175,16 @@ class KNN_self():
 
     def __get_weighted_most_common_class(self, distances : np.ndarray) -> str:
         
+        """
+        Determine the most common class label among the k-nearest neighbors with weighted voting.
+
+        Parameters:
+        - distances (np.ndarray): Array containing distances, indices, and weights for each training data point.
+
+        Returns:
+        str: Most common class label among the weighted neighbors.
+        """
+        
         # Sort the distances in descending order
         distances = sorted(distances, key=lambda x: x[2], reverse = True)
     
@@ -122,7 +195,7 @@ class KNN_self():
         class_probabilities = {}
         for _, index, weight in nearest_neighbors:
 
-            neighbor_class = self.__y_train[self.__y_train.index == index].values[0]
+            neighbor_class = self.__y_train[int(index)] # int(index) is the index of the neighbor in the training data
             
             if neighbor_class in class_probabilities:
                 class_probabilities[neighbor_class] += weight
@@ -135,23 +208,28 @@ class KNN_self():
     
     def __get_most_common_class(self, distances : np.ndarray) -> str:
         
+        """
+        Determine the most common class label among the k-nearest neighbors with equal weighting.
+
+        Parameters:
+        - distances (np.ndarray): Array containing distances, indices, and weights for each training data point.
+
+        Returns:
+        str: Most common class label among the neighbors with equal weighting.
+        """
+        
         neighbors = []
         distances = sorted(distances, key=lambda x: x[0])
 
         # make a list of the k neighbors' targets
         for i in range(self.__n_neighbors):
             
-            index = int(distances[i][1])
-            neighbors.append(self.__y_train[index])
+            neighbors.append(self.__y_train[int(distances[i][1])]) # int(distances[i][1]) is the index of the neighbor in the training data
 
         # return most common target
         return Counter(neighbors).most_common(1)[0][0]
 
-
-    ############################################################################################################
-    ############################################ Distance Metrics ##############################################
-    ############################################################################################################    
-    def __get_distance(self, point : np.ndarray):
+    def __get_distance(self, point : np.ndarray) -> np.ndarray:
         
         """
         Calculate the distance between data points of training data to new data point based on the specified metric.
@@ -160,8 +238,6 @@ class KNN_self():
         ----------
         points : np.ndarray
             Array containing the data points.
-        centroid : np.ndarray
-            Array containing the centroid.
 
         Returns
         -------
@@ -201,8 +277,10 @@ class KNN_self():
 
         Parameters
         ----------
-        data : pd.DataFrame | np.ndarray
-            The input data to be checked.
+        X_data : pd.DataFrame | pd.core.series.Series | np.ndarray
+            The input feature data to be checked.
+        y_data : pd.DataFrame | pd.core.series.Series | np.ndarray, optional
+            The input label data to be checked (default is None).
 
         Returns
         -------
@@ -211,17 +289,39 @@ class KNN_self():
         Raises
         ------
         ValueError
-            If the data is not a pandas DataFrame or a numpy array.
+            If the feature data is not a pandas DataFrame or a numpy array,
+            or if the label data is not a pandas DataFrame or a numpy array.
         """
         
         # Check if data is a valid type
         if not isinstance(X_data, (pd.core.frame.DataFrame, pd.core.series.Series, np.ndarray)):
-            raise ValueError("X_Data must be a pandas DataFrame or a numpy array")
+            raise TypeError("X_Data must be a pandas DataFrame or a numpy array")
 
         if not isinstance(y_data, (pd.core.frame.DataFrame, pd.core.series.Series, np.ndarray)) and y_data is not None:
-            raise ValueError("Y_Data must be a pandas DataFrame or a numpy array")
+            raise TypeError("Y_Data must be a pandas DataFrame or a numpy array")
     
     def __check_init_method(self, n_neighbors : int, distance_metric : str) -> None:
+        
+        """
+        Check the validity of parameters used in the initialization method.
+
+        Parameters
+        ----------
+        n_neighbors : int
+            Number of neighbors to consider.
+        distance_metric : str
+            Distance metric used for finding neighbors.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        ValueError
+            If the number of neighbors is not greater than 0,
+            or if the distance metric is not supported.
+        """
         
         if n_neighbors <= 0:
             raise ValueError(f"Number of neighbors {n_neighbors} must be larger than 0")
@@ -231,6 +331,27 @@ class KNN_self():
         
     def __check_fitting_method(self, X_data : pd.DataFrame | pd.core.series.Series | np.ndarray, scaling_method : str) -> None:
         
+        """
+        Check the validity of parameters used in the fitting method.
+
+        Parameters
+        ----------
+        X_data : pd.DataFrame | pd.core.series.Series | np.ndarray
+            Training feature data.
+        scaling_method : str
+            Method for scaling the data.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        ValueError
+            If the number of neighbors is greater than the number of data points,
+            or if the scaling method is not supported.
+        """
+        
         if self.__n_neighbors > len(X_data):
             raise ValueError(f"Number of neighbors {self.__n_neighbors} cannot be larger than the number of data points {len(X_data)}")
         
@@ -239,12 +360,30 @@ class KNN_self():
         
     def __check_prediction_method(self, data: pd.DataFrame | pd.core.series.Series | np.ndarray) -> None:
         
+        """
+        Check the validity of parameters used in the prediction method.
+
+        Parameters
+        ----------
+        data : pd.DataFrame | pd.core.series.Series | np.ndarray
+            Testing feature data.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted with data,
+            or if the number of features in the testing data is not equal to the number of features in the training data.
+        """
+        
         if self.__X_train is None:
-            raise ValueError("Model needs to be fitted first with data!")
+            raise AttributeError("Model needs to be fitted first with data!")
 
         if data.shape[1] != self.__X_train.shape[1] and data.shape[1] != self.__X_train.shape[1] + 1:
             raise ValueError(f"Number of features in data {data.shape[1]} must be equal to the number of features in training data {self.__X_train.shape[1]}")        
-        
         
         
 ############################################################################################################
@@ -253,7 +392,7 @@ class KNN_self():
 if __name__ == "__main__":
     
     #read in the data using pandas
-    df = pd.read_csv('../datasets/diabetes.csv') #https://www.kaggle.com/datasets/uciml/pima-indians-diabetes-database
+    df = pd.read_csv('../datasets/diabetes.csv')
     df = df.reindex(np.random.permutation(df.index)).reset_index(drop = True)
     
     X = df[df.columns[:-1]]
