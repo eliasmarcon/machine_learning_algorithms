@@ -60,7 +60,6 @@ class KMeans():
         random.seed(random_state)
         np.random.seed(random_state)
         
-        
     def fit(self, data : pd.DataFrame | np.ndarray, scaling_method : str = None) -> None:
         
         """
@@ -89,7 +88,6 @@ class KMeans():
         # Scale the data if a scaling method is specified
         if scaling_method: 
             self.__apply_scaling_method(scaling_method)
-    
     
     def perform(self, show_initial_centroids : bool = False, plot_data : bool = False, gif_path : str = None) -> None:
         
@@ -180,7 +178,6 @@ class KMeans():
         if self.__output_file is not None and (self.__show_initial_centroids or plot_data): 
             self.__create_gif()
             
-
     def predict(self, data: pd.DataFrame | np.ndarray) -> np.ndarray:
         
         """
@@ -202,7 +199,6 @@ class KMeans():
         # Make predictions for new data
         return self.__predict_new_data(self.__check_if_dataframe(data))
 
-
     def get_cluster_array(self, visualize: bool = False) -> np.ndarray:
 
         # Visualize the cluster array
@@ -211,7 +207,6 @@ class KMeans():
         
         return self.__cluster_array
         
-
     def get_centroids(self) -> np.ndarray:  
 
         # Return the centroids
@@ -280,7 +275,6 @@ class KMeans():
         else:
             raise ValueError(f"Unsupported cluster method: {self.__cluster_method}, supported cluster methods are: kmeans++, random")
 
-
     def __k_means_plus_plus(self) -> np.ndarray:
         
         """
@@ -337,7 +331,6 @@ class KMeans():
 
         return centroids
 
-
     def __random_centroids(self) -> np.ndarray:
         
         """
@@ -392,7 +385,6 @@ class KMeans():
             new_centroids[i] = np.mean(self.__data[clusters == i], axis=0)
 
         return new_centroids
-
 
     def __add_data_point_to_cluster(self, centroids: np.ndarray) -> np.ndarray:
         
@@ -504,7 +496,6 @@ class KMeans():
         
         # Return the index of the minimum distance (cluster assignment)
         return np.argmin(distances, axis=1)
-    
     
     
     
@@ -686,7 +677,6 @@ class KMeans():
         self.__fig.update_layout(scene=dict(zaxis=dict(showticklabels=False)), title_text=f'Select {centroids.shape[0]} th centroid')
         self.__plot_attributes_3d()
 
-
     def __plot_initial_data(self) -> None:
         
         """
@@ -715,7 +705,6 @@ class KMeans():
             self.__plot_layout()
 
         self.__save_plot_as_png("initial_state")
-
 
     def __update_plot(self, centroids : np.ndarray, clusters : np.ndarray) -> None:
         
@@ -756,7 +745,6 @@ class KMeans():
         # Save the plot as a PNG image
         self.__save_plot_as_png(f'iteration_{self.__iteration}')
 
-
     def __plot_attributes(self) -> None:
         
         """
@@ -772,7 +760,6 @@ class KMeans():
         self.__ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
         self.__ax.set_xlabel(self.__column_names[0])
         self.__ax.set_ylabel(self.__column_names[1])
-
 
     def __plot_layout(self) -> None:
         
@@ -829,7 +816,6 @@ class KMeans():
 
             # Add the file path to the list for GIF creation
             self.__plot_array.append(png_file)
-
 
     def __create_gif(self) -> None:
         
@@ -888,7 +874,6 @@ class KMeans():
 
         # Add attributes and display the plot
         self.__plot_attributes_3d()
-
 
     def __update_plot_3d(self, centroids: np.ndarray, clusters: np.ndarray) -> None:
         
@@ -952,7 +937,6 @@ class KMeans():
         # Add attributes and display the updated 3D plot
         self.__plot_attributes_3d()
 
-
     def __plot_attributes_3d(self) -> None:
         
         """
@@ -1012,7 +996,6 @@ class KMeans():
         if not isinstance(data, (pd.core.frame.DataFrame, np.ndarray)):
             raise ValueError("Data must be a pandas DataFrame or a numpy array")
 
-
     def __check_if_dataframe(self, data: pd.DataFrame | np.ndarray) -> np.ndarray:
         
         """
@@ -1036,7 +1019,6 @@ class KMeans():
         else:
             return data
 
-
     def __sleep_time(self) -> None:
         
         """
@@ -1051,7 +1033,6 @@ class KMeans():
         
         time.sleep(1)
 
-
     def __check_if_python_script(self) -> bool:
         
         """
@@ -1064,8 +1045,6 @@ class KMeans():
         """
         
         return "__name__" in globals() and __name__ == "__main__"
-
-
 
 
 ############################################################################################################
