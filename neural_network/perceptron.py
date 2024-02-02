@@ -6,9 +6,9 @@ import sys
 
 class Perceptron:
     
-    def __init__(self) -> None:
+    def __init__(self, bias : int = 1) -> None:
         
-        self.__bias = 0
+        self.__bias = bias
 
     def fit(self, X_train : pd.DataFrame | np.ndarray | pd.core.series.Series, y_train : pd.DataFrame | np.ndarray | pd.core.series.Series) -> None:
         
@@ -16,14 +16,26 @@ class Perceptron:
         self.__weights = np.random.uniform(-1, 1, self.__number_w)
         
      
-    def train(self, loss_function : str, epochs : int = 100, learning_rate : float = 0.01, activation_function : str = "relu", show_loss : bool = False, show_plots : bool = False) -> list:
+    def train(self, epochs : int = 100, learning_rate : float = 0.01, activation_function : str = None, loss_function : str = None, show_loss : bool = False, show_plots : bool = False) -> list:
         
         self.__check_lr_epochs_activation(epochs, learning_rate, activation_function, loss_function)
         
         self.__learning_rate = learning_rate
         self.__epochs = epochs
-        self.__activation_function = activation_function
         
+        if activation_function is None and self.__type_of_problem == "classification":
+            self.__activation_function = "sigmoid"
+        elif activation_function is None and self.__type_of_problem == "regression":
+            self.__activation_function = "tan_h"
+        else:
+            self.__activation_function = activation_function
+        
+        if loss_function is None and self.__type_of_problem == "classification":
+            self.__loss_function_type = "binary_cross_entropy"
+        elif loss_function is None and self.__type_of_problem == "regression":
+            self.__loss_function_type = "mse"
+        else:
+            self.__loss_function_type = loss_function
         
         if show_plots:
             self.__plot_data(trained = False)
@@ -32,11 +44,29 @@ class Perceptron:
         
         for epoch in range(1, self.__epochs + 1):
             
-            # Forward propagation
-            y_pred = self.__forward_propagation()
+            # create mini batches
+            mini_batches = self.__create_mini_batches()
+            mini_batch_losses = []
             
+            # iterate over mini batches
+            for mini_batch in mini_batches:
+                
+                self.__X_train_mini_batch = mini_batch[:, :-1]
+                self.__y_train_mini_batch = mini_batch[:, -1]
+                
+                self.__y_train_mini_batch = self.__y_train_mini_batch.reshape(-1, 1)
+                                
+                # Forward propagation
+                y_train_pred_mini_batch = self.__forward_propagation()
+                
+                # Calculate the loss
+                mini_batch_loss = self.__loss_function(y_train_pred_mini_batch, self.__y_train_mini_batch)
+                mini_batch_losses.append(mini_batch_loss)
+                
+                # Backward propagation
+                self.__backward_propagation(y_train_pred_mini_batch)
             
-            epoch_loss = self.__backward_propagation(y_pred)
+            epoch_loss = np.mean(mini_batch_losses)
             losses.append(epoch_loss)
             
             if show_loss and (epoch % 10 == 0 or epoch == 1):
@@ -51,52 +81,118 @@ class Perceptron:
         
         self.__check_test_data(X_test)
         
+        # Forward propagation
+        return self.__forward_propagation()
+    
+    def score(self, predictions : pd.DataFrame | np.ndarray | pd.core.series.Series, y_test : pd.DataFrame | np.ndarray | pd.core.series.Series) -> float:
         
+        return self.__loss_function(predictions, y_test)
     
+    def accuracy(self, predictions : pd.DataFrame | np.ndarray | pd.core.series.Series, y_test : pd.DataFrame | np.ndarray | pd.core.series.Series) -> float:
+        
+        if self.__type_of_problem == "classification":
+            return np.mean(predictions == y_test)
+        else:
+            raise ValueError("Accuracy is only available for classification problems")
+
+    #########################################################################################################################
+    ############################################ Create Mini Batches ########################################################
+    #########################################################################################################################
+    def __create_mini_batches(self) -> list:
+        
+        # shuffle the data
+        data = np.hstack((self.__X_train, self.__y_train.reshape(-1, 1)))
+        np.random.shuffle(data)
+        
+        # create mini batches
+        mini_batches = []
+        batch_size = int(self.__X_train.shape[0] / 10)
+        
+        for i in range(0, self.__X_train.shape[0], batch_size):
+            mini_batches.append(data[i:i + batch_size])
+        
+        return mini_batches
     
     #########################################################################################################################
+    ############################################ Loss Function ##############################################################
     #########################################################################################################################
+    def __loss_function(self, y_train_pred : np.ndarray, y_train_test : np.ndarray) -> float:
+    
+        if self.__type_of_problem == "classification":
+            return self.__cross_entropy_loss(y_train_pred, y_train_test)
+        
+        elif self.__type_of_problem == "regression":
+            
+            if self.__loss_function_type == "mse":
+                return self.__mse_loss(y_train_pred, y_train_test)
+            
+            elif self.__loss_function_type == "mae":
+                return self.__mae_loss(y_train_pred, y_train_test)
+    
+    def __cross_entropy_loss(self, y_train_pred : np.ndarray, y_train_test : np.ndarray) -> np.ndarray:
+        epsilon = 1e-7
+        loss = - (y_train_test * np.log(y_train_pred + epsilon) + (1 - y_train_test) * np.log(1 - y_train_pred + epsilon))
+        return np.mean(loss)
+        
+    def __mse_loss(self, y_train_pred : np.ndarray, y_train_test : np.ndarray) -> np.ndarray:
+        losses = (y_train_pred - y_train_test)**2
+        return np.mean(losses) # mean squared error
+    
+    def __mae_loss(self, y_train_pred : np.ndarray, y_train_test : np.ndarray) -> np.ndarray:
+        losses = np.abs(y_train_pred - y_train_test)
+        return np.mean(losses)
+        
+    #########################################################################################################################
+    ############################################ Forward Propagation ########################################################
     #########################################################################################################################
     def __forward_propagation(self) -> float:
         
-        if self.__activation_function == "relu":
-            return np.maximum(0, self.__weights * self.__X_train + self.__bias)
+        x = self.__X_train_mini_batch @ self.__weights + self.__bias
+        
+        if self.__activation_function == "tan_h":
+            return self.__hyperbolic_tangent_activation(x)
         
         elif self.__activation_function == "sigmoid":
-            return 1 / (1 + np.exp(-self.__weights * self.__X_train - self.__bias))
-    
-    def __backward_propagation(self, y_pred : float) -> float:
+            return self.__sigmoid_activation(x)
         
-        # Calcualte the loss
-        epoch_loss = np.mean(self.__loss_function(y_pred, self.__y_train))
+    def __sigmoid_activation(self, x : np.ndarray) -> np.ndarray:
+            
+        return 1 / (1 + np.exp(-x))
+    
+    def __hyperbolic_tangent_activation(self, x : np.ndarray) -> np.ndarray:
+            
+        return (np.exp(x) - np.exp(-x)) / (np.exp(x) + np.exp(-x))
+    
+    
+    #########################################################################################################################
+    ############################################ Backward Propagation #######################################################
+    #########################################################################################################################
+    def __backward_propagation(self, y_train_pred) -> None:
         
         # Compute the gradients
-        dL_dw, dL_db = self.__compute_gradients(y_pred)
+        dL_dw, dL_db = self.__compute_gradients(y_train_pred)
         
         # Update the weights and bias
-        self.__weights -= self.learning_rate * np.mean(dL_dw)
-        self.__bias -= self.learning_rate * np.mean(dL_db)      
-        
-        return epoch_loss  
-            
-    def __compute_gradients(self, y_pred : float) -> tuple:
-        
-        dL_dw = -2 * (self.__y_train - y_pred) * (self.__X_train * np.exp(-self.__weights * self.__X_train - self.__bias)) / (1 + np.exp(-self.__weights * self.__X_train - self.__bias))**2
-        dL_db = -2 * (self.__y_train - y_pred) * (np.exp(-self.__weights * self.__X_train - self.__bias)) / (1 + np.exp(-self.__weights * self.__X_train - self.__bias))**2
-        
-        return (dL_dw, dL_db)
+        self.__weights -= self.__learning_rate * dL_dw
+        self.__bias -= self.__learning_rate * dL_db
     
-    def __loss_function(self, y : int, y_true : int) -> int:
-    
-        if self.__type_of_problem == "classification":
-            return -y_true * np.log(y) - (1 - y_true) * np.log(1 - y) # binary cross entropy
-        
-        elif self.__type_of_problem == "regression":
-            if self.__loss_function == "mse":
-                return (y - y_true)**2
-            elif self.__loss_function == "mae":
-                return np.abs(y - y_true)
+    def __sigmoid_activation_derivative(self, x : np.ndarray) -> np.ndarray:
             
+        return np.exp(-x) / ((1 + np.exp(-x))**2) #self.__sigmoid_activation(x) * (1 - self.__sigmoid_activation(x))
+    
+    def __hyperbolic_tangent_activation_derivative(self, x : np.ndarray) -> np.ndarray:
+        
+        return 1 - self.__hyperbolic_tangent_activation(x)**2
+    
+    
+    def __compute_gradients(self, y_train_pred : np.ndarray) -> tuple:
+        
+        dL_dw = np.dot(self.__X_train_mini_batch.T, (y_train_pred - self.__y_train_mini_batch))
+        dL_db = np.sum(y_train_pred - self.__y_train_mini_batch)
+        
+        return dL_dw, dL_db
+        
+        
     #########################################################################################################################
     #########################################################################################################################
     #########################################################################################################################
@@ -159,7 +255,7 @@ class Perceptron:
         if isinstance(y_train, (pd.DataFrame, pd.core.series.Series)):
             y_train = y_train.to_numpy()
             
-        if len(X_train.shape[0]) != len(y_train.shape[0]):
+        if X_train.shape[0] != y_train.shape[0]:
             raise ValueError("X_train and y_train must have the same length")
             
         # check if regression or classification
@@ -178,22 +274,22 @@ class Perceptron:
         if not isinstance(learning_rate, float):
             raise TypeError("learning_rate must be a float")
         
-        if not isinstance(activation_function, str):
+        if not isinstance(activation_function, str) and activation_function is not None:
             raise TypeError("activation_function must be a string")
         
         if epochs < 1:
             raise ValueError("epochs must be greater than 0")
         
-        if activation_function not in ["relu", "sigmoid"]:
-            raise ValueError("activation_function must be either relu or sigmoid")
+        if activation_function not in ["tan_h", "sigmoid", None]:
+            raise ValueError("activation_function must be either tan_h or sigmoid")
 
-        if loss_function not in ["mse", "mae", "binary_cross_entropy"]:
+        if loss_function not in ["mse", "mae", "binary_cross_entropy", None]:
             raise ValueError("loss_function must be either mse, mae or binary_cross_entropy")
         
-        if self.__type_of_problem == "classification" and loss_function not in ["binary_cross_entropy"]:
+        if self.__type_of_problem == "classification" and loss_function not in ["binary_cross_entropy", None]:
             raise ValueError("loss_function must be binary_cross_entropy for classification")
         
-        if self.__type_of_problem == "regression" and loss_function not in ["mse", "mae"]:
+        if self.__type_of_problem == "regression" and loss_function not in ["mse", "mae", None]:
             raise ValueError("loss_function must be mse or mae for regression")
 
     def __check_test_data(self, X_test : pd.DataFrame | np.ndarray | pd.core.series.Series) -> np.ndarray:
