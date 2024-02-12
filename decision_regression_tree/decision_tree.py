@@ -5,127 +5,10 @@ import sys
 import seaborn as sns
 import matplotlib.pyplot as plt
 from collections import Counter
-
-def separator():
-
-    print("\n")
-
-
-def get_distribution(df):
-
-    # Define a custom color palette for 'Yes' and 'No'
-    custom_palette = {"Yes": "blue", "No": "orange"}  # You can use your desired colors
-
-    # Set the number of rows and columns for subplots
-    num_rows = 2
-    num_cols = 3
-
-    # Create subplots
-    fig, axes = plt.subplots(num_rows, num_cols, figsize=(16, 8))
-
-    # Flatten the axes for easy iteration
-    axes = axes.flatten()
-
-    # Loop through each column and create a count plot on the corresponding subplot
-    for i, column in enumerate(df.columns):
-        sns.countplot(x=column, data=df, ax=axes[i], palette=custom_palette, order=["Yes", "No"])  # Use the custom color palette and specify the order
-        axes[i].set_title(f'Distribution of {column}')
-
-
-    # Adjust layout
-    plt.tight_layout()
-
-    # Show the plot
-    plt.show()
-
-
-def create_dataset():
-
-    # Set the random seed for reproducibility
-    random.seed(42)
-
-    # Define the number of rows
-    num_rows = 1500
-
-    # Create a dictionary to store the data for each column
-    data = {
-        'chest_pain': [random.choice(['Yes', 'Yes', 'No']) for _ in range(num_rows)],
-        'good_blood_circulation': [random.choice(['Yes', 'No', 'No']) for _ in range(num_rows)],
-        'blocked_arteries': [random.choice(['Yes', 'No', 'No']) for _ in range(num_rows)],
-        'overweight': [random.choice(['Yes', 'Yes', 'No']) for _ in range(num_rows)],
-        'high_blood_pressure': [random.choice(['Yes', 'Yes', 'Yes', 'No']) for _ in range(num_rows)],
-        'heart_disease': [random.choice(['Yes', 'No']) for _ in range(num_rows)]
-    }
-
-    # Create a pandas DataFrame from the dictionary
-    df = pd.DataFrame(data)
-
-    return df
-
-
-# create custom train test function
-def custom_train_test_split(X, y, training_size=0.8, random_state=None, num_shuffles=100):
-
-    # Check if X and y have the same number of rows
-    if len(X) != len(y):
-        raise ValueError("X and y must have the same number of rows.")
-    
-    # Set a seed if one is defined
-    if random_state is None:
-        random_state = 42
-    
-    # Combine X and y into a single DataFrame
-    df = pd.concat([X, y], axis=1)
-    
-    # Check if shuffle is requested
-    if num_shuffles <= 0:
-        # Determine the split index
-        split_index = int(len(df) * training_size)
-        
-        # Split the DataFrame into training and testing sets
-        train_df = df.iloc[:split_index]
-        test_df = df.iloc[split_index:]
-    
-    else:
-    
-        # Shuffle the DataFrame for a specified number of times
-        np.random.seed(random_state)  # Set seed for reproducibility
-        shuffled_indices = np.arange(len(df))
-    
-        for _ in range(num_shuffles):
-    
-            np.random.shuffle(shuffled_indices)
-    
-        shuffled_df = df.iloc[shuffled_indices].reset_index(drop=True)
-        
-        # Determine the split index after shuffling
-        split_index = int(len(shuffled_df) * training_size)
-        
-        # Split the shuffled DataFrame into training and testing sets
-        train_df = shuffled_df.iloc[:split_index]
-        test_df = shuffled_df.iloc[split_index:]
-    
-    # Separate features and target variable in the training and testing sets
-    X_train = train_df.iloc[:, :-1]
-    y_train = train_df.iloc[:, -1]
-    X_test = test_df.iloc[:, :-1]
-    y_test = test_df.iloc[:, -1]
-    
-    return X_train, X_test, y_train, y_test
-
-
-def accuracy_score(y_pred, y_true):
-
-    total_samples = len(y_true)
-
-    correct_predictions = np.sum(y_true == y_pred)
-
-    return (correct_predictions / total_samples) 
-
-
 class Node():
 
     def __init__(self, max_depth=None, depth=None, num_min_samples=20, node_type=None, left=None, right=None):
+        
         # Constructor for the Node class
         # Initialize the attributes with default or provided values
         self.max_depth = max_depth  # Maximum depth for the tree
@@ -136,6 +19,7 @@ class Node():
         self.right = right  # Reference to the right child node
 
     def fit(self, X, y):
+        
         # Method to fit (store) the training data (X) and labels (y) in the node's dataframe (df)
         df = X.copy()
         df['target'] = y  # Create a new column in the DataFrame for labels
@@ -244,14 +128,10 @@ class Node():
         
         # If there are no observations, return the lowest possible Gini impurity (0.0)
         if n == 0:
-        
             return 0.0
-        
         else:
-        
             # Calculate and return the Gini impurity
-            gini = 1 - (count_yes / n)**2 - (count_no / n)**2
-            return gini
+            return 1 - (count_yes / n)**2 - (count_no / n)**2
 
     def gini_impurity_before_split(self):
         
@@ -361,65 +241,4 @@ class Node():
 
 if __name__ == "__main__":
 
-
-    # Check if the user provided an argument
-    if len(sys.argv) != 2:
-
-        print("Usage: python your_script.py <number>")
-        sys.exit(1)
-
-    # Get the number from the command-line argument (second argument)
-    try:
-    
-        number = int(sys.argv[1])
-        print(f"You provided the number: {number}")
-
-    except ValueError:
-
-        print("Invalid input. Please enter a valid number.")
-
-    #-------------------------------------------------------------------------------------------------------------------------------------------
-
-    df = create_dataset()
-    print("Dataset:")
-    print(df.head(10))
-
-    #-------------------------------------------------------------------------------------------------------------------------------------------
-    separator()
-
-    get_distribution(df)
-
-    #-------------------------------------------------------------------------------------------------------------------------------------------
-    separator()
-
-    X = df.drop('heart_disease', axis = 1)
-    y = df['heart_disease']
-
-    X_train, X_test, y_train, y_test = custom_train_test_split(X, y, random_state=42, training_size=0.8)
-
-    print("Training Data X")
-    print(X_train.head(10))
-
-    separator()
-    print("Training Data y")
-    print(y_train.head(10))
-
-    #-------------------------------------------------------------------------------------------------------------------------------------------
-    separator()
-
-    # Train a decision tree on the training set
-    tree = Node(max_depth = number)
-    tree.fit(X_train, y_train)
-    tree.grow_tree()
-
-    # Print the build procedure of the decision tree
-    tree.print_tree()
-
-    #-------------------------------------------------------------------------------------------------------------------------------------------
-    separator()
-
-    y_pred = tree.predict(X_test)
-    accuracy_score = accuracy_score(y_pred, y_test)
-    print("Accuracy Score:", accuracy_score)
-
-    separator()
+    pass

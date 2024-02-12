@@ -332,7 +332,7 @@ class SimpleLinearRegression:
         self._residuals = self.__y_train - y_train_pred # Residuals
         
         self.__standard_figure_size()
-        sns.distplot(self._residuals, bins = 15)
+        sns.histplot(self._residuals, bins = 15, kde=True)
         plt.title(title)
         plt.xlabel(xlabel)
         plt.ylabel("Density")
