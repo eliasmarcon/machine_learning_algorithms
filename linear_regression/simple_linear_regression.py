@@ -78,7 +78,7 @@ class SimpleLinearRegression:
         
         self.__fit_intercept = fit_intercept
         
-    def fit(self, X_train: pd.DataFrame | pd.core.series.Series | np.ndarray, y_train: pd.DataFrame | pd.core.series.Series | np.ndarray, sample_weights: np.ndarray | list = None) -> None:
+    def fit(self, X_train: pd.core.frame.DataFrame | pd.core.series.Series | np.ndarray, y_train: pd.core.frame.DataFrame | pd.core.series.Series | np.ndarray, sample_weights: np.ndarray | list = None) -> None:
         """
         Fit the simple linear regression model to the training data.
 
@@ -134,7 +134,7 @@ class SimpleLinearRegression:
             return sample_weights    
     
         
-    def predict(self, X_test : pd.DataFrame | pd.core.series.Series | np.ndarray) -> np.ndarray:
+    def predict(self, X_test : pd.core.frame.DataFrame | pd.core.series.Series | np.ndarray) -> np.ndarray:
         
         """
         Predict the dependent variable for new data.
@@ -218,7 +218,7 @@ class SimpleLinearRegression:
     ############################################################################################################
     ######################################## Calculating Metrics ###############################################
     ############################################################################################################
-    def get_metric(self, y_pred : pd.DataFrame | np.ndarray | pd.core.series.Series, y_test : pd.DataFrame | np.ndarray | pd.core.series.Series, metric : str):
+    def get_metric(self, y_pred : pd.core.frame.DataFrame | np.ndarray | pd.core.series.Series, y_test : pd.core.frame.DataFrame | np.ndarray | pd.core.series.Series, metric : str):
         
         """
         Calculate a specified metric between predicted and true values.
@@ -454,7 +454,7 @@ class SimpleLinearRegression:
     ############################################################################################################
     ########################################### Validating Data ################################################
     ############################################################################################################
-    def __check_if_valid_data(self, X_data : pd.DataFrame | pd.core.series.Series | np.ndarray, y_data : pd.DataFrame | pd.core.series.Series | np.ndarray = None, sample_weigths : np.ndarray | list = None) -> None:
+    def __check_if_valid_data(self, X_data : pd.core.frame.DataFrame | pd.core.series.Series | np.ndarray, y_data : pd.core.frame.DataFrame | pd.core.series.Series | np.ndarray = None, sample_weigths : np.ndarray | list = None) -> None:
         
         """
         Check if the input data is valid.
@@ -475,10 +475,10 @@ class SimpleLinearRegression:
         
         # Check if data is a valid type
         if not isinstance(X_data, (pd.core.frame.DataFrame, pd.core.series.Series, np.ndarray)):
-            raise TypeError("X_Data must be a pandas DataFrame or a numpy array")
+            raise TypeError("X_Data must be a pandas DataFrame/Series or a numpy array")
 
         if not isinstance(y_data, (pd.core.frame.DataFrame, pd.core.series.Series, np.ndarray)) and y_data is not None:
-            raise TypeError("Y_Data must be a pandas DataFrame or a numpy array")
+            raise TypeError("Y_Data must be a pandas DataFrame/Series or a numpy array")
         
         if isinstance(X_data, (pd.core.frame.DataFrame, pd.core.series.Series, np.ndarray)) and isinstance(y_data, (pd.core.frame.DataFrame, pd.core.series.Series, np.ndarray)) and len(X_data) != len(y_data):
             raise ValueError("X_Data and Y_Data must be the same length")
@@ -486,7 +486,7 @@ class SimpleLinearRegression:
         if not isinstance(sample_weigths, (np.ndarray, list)) and sample_weigths is not None:
             raise TypeError("Sample weights must be a numpy array or a list")
 
-    def __check_X_train(self, X_train : pd.DataFrame | pd.core.series.Series | np.ndarray) -> np.ndarray:
+    def __check_X_train(self, X_train : pd.core.frame.DataFrame | pd.core.series.Series | np.ndarray) -> np.ndarray:
         
         """
         Check and convert the training data for the independent variable.
@@ -509,7 +509,7 @@ class SimpleLinearRegression:
         else:
             return X_train
     
-    def __check_y_train(self, y_train : pd.DataFrame | pd.core.series.Series | np.ndarray) -> np.ndarray:
+    def __check_y_train(self, y_train : pd.core.frame.DataFrame | pd.core.series.Series | np.ndarray) -> np.ndarray:
         
         """
         Check and convert the training data for the dependent variable.
@@ -532,7 +532,7 @@ class SimpleLinearRegression:
         else:
             return y_train
         
-    def __check_X_test(self, X_test : pd.DataFrame | pd.core.series.Series | np.ndarray) -> np.ndarray:
+    def __check_X_test(self, X_test : pd.core.frame.DataFrame | pd.core.series.Series | np.ndarray) -> np.ndarray:
         
         """
         Check and convert the testing data for the independent variable.
@@ -553,7 +553,7 @@ class SimpleLinearRegression:
         else:
             return X_test
         
-    def __check_prediction_testing(self, y_pred : pd.DataFrame | np.ndarray | pd.core.series.Series, y_test : pd.DataFrame | np.ndarray | pd.core.series.Series) -> tuple:
+    def __check_prediction_testing(self, y_pred : pd.core.frame.DataFrame | np.ndarray | pd.core.series.Series, y_test : pd.core.frame.DataFrame | np.ndarray | pd.core.series.Series) -> tuple:
             
         """
         Check and convert predicted and true values for consistency.
@@ -571,19 +571,19 @@ class SimpleLinearRegression:
             A tuple containing the converted predicted and true values.
         """    
         
-        if not isinstance(y_pred, (pd.DataFrame, np.ndarray, pd.core.series.Series)):
+        if not isinstance(y_pred, (pd.core.frame.DataFrame, np.ndarray, pd.core.series.Series)):
             raise TypeError('y_pred must be a numpy array or a pandas series/dataframe')
         
-        if not isinstance(y_test, (pd.DataFrame, np.ndarray, pd.core.series.Series)):
+        if not isinstance(y_test, (pd.core.frame.DataFrame, np.ndarray, pd.core.series.Series)):
             raise TypeError('y_test must be a numpy array or a pandas series/dataframe')
         
         if len(y_pred) != len(y_test):
             raise ValueError('y_pred and y_test must be the same length')
         
-        if isinstance(y_pred, (pd.DataFrame, pd.core.series.Series)):
+        if isinstance(y_pred, (pd.core.frame.DataFrame, pd.core.series.Series)):
             y_pred = y_pred.to_numpy()
         
-        if isinstance(y_test, (pd.DataFrame, pd.core.series.Series)):
+        if isinstance(y_test, (pd.core.frame.DataFrame, pd.core.series.Series)):
             y_test = y_test.to_numpy()
             
         return (y_pred, y_test)
