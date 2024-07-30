@@ -655,5 +655,48 @@ class DecisionTree():
             raise ValueError("X and y must have the same number of rows")
 
     
+
+############################################################################################################
+############################################## Example Usage ###############################################
+############################################################################################################
+if __name__ == "__main__":
     
+    import random
+    from sklearn.model_selection import train_test_split
     
+    # Set the random seed for reproducibility
+    random.seed(42)
+
+    # Define the number of rows
+    num_rows = 15000
+
+    # Create a dictionary to store the data for each column
+    data = {
+        'chest_pain': [random.choice(['Yes', 'Yes', 'No']) for _ in range(num_rows)],
+        'good_blood_circulation': [random.choice(['Yes', 'No', 'No']) for _ in range(num_rows)],
+        'blocked_arteries': [random.choice(['Yes', 'No', 'No']) for _ in range(num_rows)],
+        'overweight': [random.choice(['Yes', 'Yes', 'No']) for _ in range(num_rows)],
+        'high_blood_pressure': [random.choice(['Yes', 'Yes', 'Yes', 'No']) for _ in range(num_rows)],
+        'heart_disease': [random.choice(['Yes', 'No']) for _ in range(num_rows)]
+    }
+
+    # Create a pandas DataFrame from the dictionary
+    df = pd.DataFrame(data)
+    
+    X_train, X_test, y_train, y_test = train_test_split(df.drop('heart_disease', axis=1), df['heart_disease'], test_size=0.2, random_state=42)
+    
+    decision_tree = DecisionTree(max_depth = 4, num_min_samples = 20)
+    decision_tree.fit(X_train, y_train)
+
+    # Grow the decision tree
+    decision_tree.grow_tree()
+    
+    # Print the decision tree
+    decision_tree.print_tree()
+    
+    predictions = decision_tree.predict(df.drop('heart_disease', axis=1))
+
+    # compare the predictions to the actual values
+    accuracy = (predictions == df['heart_disease']).mean()
+    print(f"The accuracy of the model is {accuracy * 100:.2f}%")
+

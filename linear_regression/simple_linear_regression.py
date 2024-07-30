@@ -7,6 +7,7 @@ from sklearn.model_selection import train_test_split
 
 
 class SimpleLinearRegression:
+    
     """
     SimpleLinearRegression class for fitting and predicting using simple linear regression.
 
@@ -78,7 +79,9 @@ class SimpleLinearRegression:
         
         self.__fit_intercept = fit_intercept
         
+        
     def fit(self, X_train: pd.core.frame.DataFrame | pd.core.series.Series | np.ndarray, y_train: pd.core.frame.DataFrame | pd.core.series.Series | np.ndarray, sample_weights: np.ndarray | list = None) -> None:
+        
         """
         Fit the simple linear regression model to the training data.
 
@@ -159,6 +162,7 @@ class SimpleLinearRegression:
     ########################################### Coefficients ###################################################
     ############################################################################################################    
     def __calculate_coefficients(self, sample_weights: np.ndarray) -> None:
+        
         """
         Calculate coefficients for the linear regression model.
 
@@ -171,12 +175,15 @@ class SimpleLinearRegression:
         -------
         None
         """
+        
         if self.__fit_intercept:
             self.__calculate_coefficients_with_intercept(sample_weights)
         else:
             self.__calculate_coefficients_without_intercept(sample_weights)
 
+
     def __calculate_coefficients_with_intercept(self, sample_weights: np.ndarray) -> None:
+        
         """
         Calculate coefficients with intercept for the linear regression model.
 
@@ -189,13 +196,16 @@ class SimpleLinearRegression:
         -------
         None
         """
+        
         numerator = np.sum(sample_weights * (self.__X_train - np.mean(self.__X_train)) * (self.__y_train - np.mean(self.__y_train)))
         denominator = np.sum(sample_weights * (self.__X_train - np.mean(self.__X_train)) ** 2)
 
         self._slope = numerator / denominator
         self._intercept = np.mean(self.__y_train) - self._slope * np.mean(self.__X_train)
 
+
     def __calculate_coefficients_without_intercept(self, sample_weights: np.ndarray) -> None:
+        
         """
         Calculate coefficients without intercept for the linear regression model.
 
@@ -208,6 +218,7 @@ class SimpleLinearRegression:
         -------
         None
         """
+        
         numerator = np.sum(sample_weights * self.__X_train * self.__y_train)
         denominator = np.sum(sample_weights * self.__X_train ** 2)
 
@@ -242,6 +253,7 @@ class SimpleLinearRegression:
         self.__y_pred, self.__y_test = self.__check_prediction_testing(y_pred, y_test)
         
         return self.__get_metric(metric)
+    
     
     def __get_metric(self, metric):
         
@@ -280,6 +292,7 @@ class SimpleLinearRegression:
         plt.scatter(self.__X_train, self.__y_train, color = 'skyblue', label='Data Points')
         self.__plot_attributes(title, xlabel, ylabel)
 
+
     def plot_regression_line(self, title : str = None, xlabel : str = None, ylabel : str = None) -> None:
         
         """
@@ -305,6 +318,7 @@ class SimpleLinearRegression:
         plt.scatter(self.__X_train, self.__y_train, color = 'skyblue', label='Data Points')
         plt.plot(self.__X_train, self._intercept + self._slope * self.__X_train, color = 'red', label='Fitted Regression Line')
         self.__plot_attributes(title, xlabel, ylabel)
+        
         
     def plot_residuals(self, title : str = None, xlabel : str = None, both : bool = False) -> None:
         
@@ -343,6 +357,7 @@ class SimpleLinearRegression:
             self.__standard_figure_size()
             plt.scatter(self.__X_train, self._residuals, label = "Residuals vs. X_train", color = "blue")
             self.__plot_attributes("Residuals", self.__x_train_col_name, "Residuals")
+          
             
     def plot_testing_and_prediction(self, title : str = None, xlabel : str = None, ylabel : str = None) -> None:
         
@@ -377,6 +392,7 @@ class SimpleLinearRegression:
             plt.plot([x_pred, x_test], [y_pred, y_test], color='gray', linestyle='--', linewidth=1.5)
         
         self.__plot_attributes(title, xlabel, ylabel)
+
 
     def __get_plot_attributes(self, title : str = None, xlabel : str = None, ylabel : str = None) -> tuple:
         
@@ -413,6 +429,7 @@ class SimpleLinearRegression:
             
         return (title, xlabel, ylabel)
     
+    
     def __plot_attributes(self, title : str = None, xlabel : str = None, ylabel : str = None) -> None:
         
         """
@@ -437,6 +454,7 @@ class SimpleLinearRegression:
         plt.ylabel(ylabel)
         plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
         plt.show()
+        
         
     def __standard_figure_size(self) -> None:
         
@@ -486,6 +504,7 @@ class SimpleLinearRegression:
         if not isinstance(sample_weigths, (np.ndarray, list)) and sample_weigths is not None:
             raise TypeError("Sample weights must be a numpy array or a list")
 
+
     def __check_X_train(self, X_train : pd.core.frame.DataFrame | pd.core.series.Series | np.ndarray) -> np.ndarray:
         
         """
@@ -508,6 +527,7 @@ class SimpleLinearRegression:
             return X_train.to_numpy(), X_train.name
         else:
             return X_train
+    
     
     def __check_y_train(self, y_train : pd.core.frame.DataFrame | pd.core.series.Series | np.ndarray) -> np.ndarray:
         
@@ -532,6 +552,7 @@ class SimpleLinearRegression:
         else:
             return y_train
         
+        
     def __check_X_test(self, X_test : pd.core.frame.DataFrame | pd.core.series.Series | np.ndarray) -> np.ndarray:
         
         """
@@ -552,6 +573,7 @@ class SimpleLinearRegression:
             return X_test.to_numpy()
         else:
             return X_test
+        
         
     def __check_prediction_testing(self, y_pred : pd.core.frame.DataFrame | np.ndarray | pd.core.series.Series, y_test : pd.core.frame.DataFrame | np.ndarray | pd.core.series.Series) -> tuple:
             
@@ -587,6 +609,7 @@ class SimpleLinearRegression:
             y_test = y_test.to_numpy()
             
         return (y_pred, y_test)
+      
         
     def __check_metric(self, metric : str) -> None:
         
@@ -608,6 +631,9 @@ class SimpleLinearRegression:
 
 
 
+############################################################################################################
+############################################## Example Usage ###############################################
+############################################################################################################
 if __name__ == "__main__":
 
     df = pd.read_csv('../datasets/advertising.csv')

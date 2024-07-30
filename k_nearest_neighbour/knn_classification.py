@@ -3,7 +3,8 @@ import numpy as np
 from collections import Counter
 from sklearn.model_selection import train_test_split
 
-class KNN_self():
+
+class KNN():
     
     ############################################################################################################
     ################################### Initialization / Main methods ##########################################
@@ -386,8 +387,9 @@ class KNN_self():
             raise ValueError(f"Number of features in data {data.shape[1]} must be equal to the number of features in training data {self.__X_train.shape[1]}")        
         
         
+        
 ############################################################################################################
-############################################# Testing ######################################################
+############################################## Example Usage ###############################################
 ############################################################################################################
 if __name__ == "__main__":
     
@@ -401,7 +403,7 @@ if __name__ == "__main__":
     #split the data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2)
 
-    knn_example = KNN_self(n_neighbors = 2, distance_metric="euclidean", weighting=False)
+    knn_example = KNN(n_neighbors = 2, distance_metric="euclidean", weighting=False)
     knn_example.fit(X_train, y_train)
     
     predictions = knn_example.predict(X_test)

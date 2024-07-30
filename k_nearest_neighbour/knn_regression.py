@@ -4,7 +4,8 @@ from collections import Counter
 from sklearn.model_selection import train_test_split
 from scipy.stats import mode
 
-class KNN_self():
+
+class KNN():
     
     ############################################################################################################
     ################################### Initialization / Main methods ##########################################
@@ -460,8 +461,9 @@ class KNN_self():
             raise ValueError(f"Error type {error_type} not supported (supported types: MSE, MAE, RMSE)")
         
         
+        
 ############################################################################################################
-############################################# Testing ######################################################
+############################################## Example Usage ###############################################
 ############################################################################################################
 if __name__ == "__main__":
     
@@ -475,7 +477,7 @@ if __name__ == "__main__":
     #split the data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2)
 
-    knn_example = KNN_self(n_neighbors = 2, distance_metric="euclidean", weighting=False)
+    knn_example = KNN(n_neighbors = 2, distance_metric="euclidean", weighting=False)
     knn_example.fit(X_train, y_train)
     
     predictions = knn_example.predict(X_test)

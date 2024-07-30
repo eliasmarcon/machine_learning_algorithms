@@ -84,9 +84,11 @@ class Perceptron:
         # Forward propagation
         return self.__forward_propagation()
     
+    
     def score(self, predictions : pd.DataFrame | np.ndarray | pd.core.series.Series, y_test : pd.DataFrame | np.ndarray | pd.core.series.Series) -> float:
         
         return self.__loss_function(predictions, y_test)
+    
     
     def accuracy(self, predictions : pd.DataFrame | np.ndarray | pd.core.series.Series, y_test : pd.DataFrame | np.ndarray | pd.core.series.Series) -> float:
         
@@ -129,14 +131,17 @@ class Perceptron:
             elif self.__loss_function_type == "mae":
                 return self.__mae_loss(y_train_pred, y_train_test)
     
+    
     def __cross_entropy_loss(self, y_train_pred : np.ndarray, y_train_test : np.ndarray) -> np.ndarray:
         epsilon = 1e-7
         loss = - (y_train_test * np.log(y_train_pred + epsilon) + (1 - y_train_test) * np.log(1 - y_train_pred + epsilon))
         return np.mean(loss)
         
+        
     def __mse_loss(self, y_train_pred : np.ndarray, y_train_test : np.ndarray) -> np.ndarray:
         losses = (y_train_pred - y_train_test)**2
         return np.mean(losses) # mean squared error
+    
     
     def __mae_loss(self, y_train_pred : np.ndarray, y_train_test : np.ndarray) -> np.ndarray:
         losses = np.abs(y_train_pred - y_train_test)
@@ -155,9 +160,11 @@ class Perceptron:
         elif self.__activation_function == "sigmoid":
             return self.__sigmoid_activation(x)
         
+        
     def __sigmoid_activation(self, x : np.ndarray) -> np.ndarray:
             
         return 1 / (1 + np.exp(-x))
+    
     
     def __hyperbolic_tangent_activation(self, x : np.ndarray) -> np.ndarray:
             
@@ -176,9 +183,11 @@ class Perceptron:
         self.__weights -= self.__learning_rate * dL_dw
         self.__bias -= self.__learning_rate * dL_db
     
+    
     def __sigmoid_activation_derivative(self, x : np.ndarray) -> np.ndarray:
             
         return np.exp(-x) / ((1 + np.exp(-x))**2) #self.__sigmoid_activation(x) * (1 - self.__sigmoid_activation(x))
+    
     
     def __hyperbolic_tangent_activation_derivative(self, x : np.ndarray) -> np.ndarray:
         
@@ -266,6 +275,7 @@ class Perceptron:
 
         return (X_train, y_train, X_train.shape[1], type_of_problem)
     
+    
     def __check_lr_epochs_activation(self, epochs : int, learning_rate : float, activation_function : str, loss_function : str) -> None:
         
         if not isinstance(epochs, int):
@@ -292,6 +302,7 @@ class Perceptron:
         if self.__type_of_problem == "regression" and loss_function not in ["mse", "mae", None]:
             raise ValueError("loss_function must be mse or mae for regression")
 
+
     def __check_test_data(self, X_test : pd.DataFrame | np.ndarray | pd.core.series.Series) -> np.ndarray:
         
         if not isinstance(X_test, (pd.DataFrame, np.ndarray, pd.core.series.Series)):
@@ -308,7 +319,7 @@ class Perceptron:
 
 
 ############################################################################################################
-############################################### Main Function ä#############################################
+############################################## Example Usage ###############################################
 ############################################################################################################
 if __name__ == "__main__":
     
@@ -330,5 +341,3 @@ if __name__ == "__main__":
     # best current Epochs 200, Learning Rate 1
     # single_neuron = Neuron()
     # single_neuron.train(epochs = 200, learning_rate = 1, show_loss = False, show_plots = True)
-
-

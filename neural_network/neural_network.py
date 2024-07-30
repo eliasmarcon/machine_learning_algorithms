@@ -36,6 +36,7 @@ class NeuralNetwork():
         
         self.initialize_parameters()
     
+    
     def fit(self, X : pd.DataFrame, y : np.array) -> None:
         
         self.X = X.values.T
@@ -63,6 +64,7 @@ class NeuralNetwork():
         
         return costs
 
+
     def plot_costs(self, costs : list, learning_rate : float) -> None:
         
         #plot costs
@@ -75,7 +77,6 @@ class NeuralNetwork():
     ########################################################################################################################################
     ###################################################### Forward Pass #################################################################### 
     ########################################################################################################################################
-    
     def initialize_parameters(self) -> None:
         
         for l in range(1, self.num_layers):
@@ -85,15 +86,15 @@ class NeuralNetwork():
             
             assert(self.weights["W" + str(l)].shape == (self.layers[l], self.layers[l-1]))
             assert(self.biases["b" + str(l)].shape == (self.layers[l], 1))
-        
-        # print(self.weights)
-        # print(self.biases)
+    
     
     def sigmoid(self, x):
         return 1/(1 + np.exp(-x))
     
+    
     def relu(self, x):
         return np.maximum(0,x)
+    
     
     def linear_step(self, A_prev, W, b):
         
@@ -132,7 +133,6 @@ class NeuralNetwork():
     ########################################################################################################################################
     ###################################################### Compute Costs ################################################################### 
     ########################################################################################################################################
-    
     def compute_cost(self, AL) -> float:
         
         m = self.y.shape[0]
@@ -145,6 +145,10 @@ class NeuralNetwork():
         return cost
 
 
+
+############################################################################################################
+############################################## Example Usage ###############################################
+############################################################################################################
 if __name__ == "__main__":
 
     if len(sys.argv) > 1:

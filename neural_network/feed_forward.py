@@ -3,7 +3,6 @@ import numpy as np
 import numpy.typing as npt
 from sklearn.datasets import load_wine
 from sklearn.decomposition import PCA
-from sklearn.metrics import cohen_kappa_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import RobustScaler
 import matplotlib.pyplot as plt
@@ -11,6 +10,7 @@ from sklearn.neural_network import MLPClassifier
 
 
 class Layer:
+    
     def __init__(
             self,
             input_size: int,
@@ -35,6 +35,7 @@ class Layer:
 
 
 class FeedForwardNetwork:
+    
     def __init__(
             self,
             *,
@@ -42,11 +43,13 @@ class FeedForwardNetwork:
             loss_function: Callable[[npt.NDArray[np.float64], npt.NDArray[np.float64]], npt.NDArray[np.float64]],
             metrics: list[Callable[[npt.NDArray[np.float64], npt.NDArray[np.float64]], npt.NDArray[np.float64]]] = None
     ):
+        
         for i in range(len(layers) - 1):
             assert layers[i].output_size == layers[i + 1].input_size
         self.layers = layers
         self.loss_function = loss_function
         self.metrics = metrics if metrics is not None else []
+
 
     def forward(self, input: npt.NDArray[np.float64]):
         for layer in self.layers:

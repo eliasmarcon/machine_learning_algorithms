@@ -1,7 +1,15 @@
 import pandas as pd
 import numpy as np
 
-class train_test_split():
+
+def train_test_split(*data : pd.DataFrame | np.ndarray | pd.core.series.Series, training_size : float | int = None, testing_size : float | int = None, random_state : int = None, num_shuffles : int = None):
+    
+    train_test_object = __TrainTestObject(*data, training_size = training_size, testing_size = testing_size, random_state = random_state, num_shuffles = num_shuffles)
+    
+    return train_test_object()
+
+
+class __TrainTestObject():
     
     """
     A class for custom train-test splitting of data.
@@ -325,3 +333,18 @@ class train_test_split():
         
         if type(training_size) == float and type(testing_size) == float and training_size + testing_size > 1:
             raise ValueError("training_size + testing_size cannot be greater than 1")
+        
+        
+        
+############################################################################################################
+############################################## Example Usage ###############################################
+############################################################################################################
+if __name__ == "__main__":
+    
+    df = pd.read_csv('../datasets/diabetes.csv')
+    print(df.head())
+
+    train, test = train_test_split(df, testing_size=0.2, random_state=20)
+
+    print(train.head())
+    print(test.head())
